@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Food {
   id: string;
@@ -36,20 +37,36 @@ export const useDietTracker = () => {
   });
 
   const [foodSearchResults, setFoodSearchResults] = useState<Food[]>([]);
+  const [allFoodItems, setAllFoodItems] = useState<Food[]>([]);
 
-  // Sample food database
-  const foodDatabase: Food[] = [
-    { id: '1', name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fat: 0.4, serving: '1 medium' },
-    { id: '2', name: 'Chicken Breast', calories: 231, protein: 43.5, carbs: 0, fat: 5, serving: '100g' },
-    { id: '3', name: 'Brown Rice', calories: 216, protein: 5, carbs: 45, fat: 1.8, serving: '1 cup cooked' },
-    { id: '4', name: 'Avocado', calories: 234, protein: 2.9, carbs: 12, fat: 21, serving: '1 medium' },
-    { id: '5', name: 'Greek Yogurt', calories: 100, protein: 17, carbs: 6, fat: 0, serving: '170g' },
-    { id: '6', name: 'Almonds', calories: 164, protein: 6, carbs: 6, fat: 14, serving: '28g' },
-    { id: '7', name: 'Salmon', calories: 206, protein: 22, carbs: 0, fat: 12, serving: '100g' },
-    { id: '8', name: 'Sweet Potato', calories: 112, protein: 2, carbs: 26, fat: 0.1, serving: '1 medium' },
-    { id: '9', name: 'Eggs', calories: 155, protein: 13, carbs: 1.1, fat: 11, serving: '2 large' },
-    { id: '10', name: 'Oatmeal', calories: 154, protein: 5.3, carbs: 28, fat: 3, serving: '1 cup cooked' }
-  ];
+  // Fetch food items from Supabase
+  useEffect(() => {
+    const fetchFoodItems = async () => {
+      const { data, error } = await supabase
+        .from('food_items')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching food items:', error);
+        return;
+      }
+
+      // Transform Supabase data to match our Food interface
+      const transformedFoods: Food[] = data.map(item => ({
+        id: item.food_id,
+        name: item.name,
+        calories: Math.round(item.calories_per_100g), // Assuming 100g serving
+        protein: Number(item.protein_per_100g) || 0,
+        carbs: Number(item.carbs_per_100g) || 0,
+        fat: Number(item.fat_per_100g) || 0,
+        serving: '100g'
+      }));
+
+      setAllFoodItems(transformedFoods);
+    };
+
+    fetchFoodItems();
+  }, []);
 
   // Calculate daily stats
   const dailyStats: DailyStats = {
@@ -94,7 +111,7 @@ export const useDietTracker = () => {
       return;
     }
     
-    const filtered = foodDatabase.filter(food =>
+    const filtered = allFoodItems.filter(food =>
       food.name.toLowerCase().includes(query.toLowerCase())
     );
     setFoodSearchResults(filtered);
