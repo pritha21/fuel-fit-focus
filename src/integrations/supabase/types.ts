@@ -314,6 +314,39 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          daily_calorie_limit: number | null
+          email_address: string | null
+          id: string
+          notification_email: boolean | null
+          notification_time: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_calorie_limit?: number | null
+          email_address?: string | null
+          id?: string
+          notification_email?: boolean | null
+          notification_time?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_calorie_limit?: number | null
+          email_address?: string | null
+          id?: string
+          notification_email?: boolean | null
+          notification_time?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           activity_level: string | null

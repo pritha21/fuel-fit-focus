@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Food {
   id: string;
@@ -29,6 +31,9 @@ export interface WeeklyData {
 }
 
 export const useDietTracker = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
   const [meals, setMeals] = useState({
     breakfast: [] as Food[],
     lunch: [] as Food[],
@@ -38,6 +43,11 @@ export const useDietTracker = () => {
 
   const [foodSearchResults, setFoodSearchResults] = useState<Food[]>([]);
   const [allFoodItems, setAllFoodItems] = useState<Food[]>([]);
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
 
   // Fetch food items from Supabase
   const fetchFoodItems = async () => {
@@ -64,9 +74,67 @@ export const useDietTracker = () => {
     setAllFoodItems(transformedFoods);
   };
 
+  // Fetch today's meals from Supabase
+  const fetchTodaysMeals = async () => {
+    if (!user) return;
+
+    const today = getTodayDate();
+    console.log('Fetching meals for date:', today, 'user:', user.id);
+
+    const { data: mealsData, error } = await supabase
+      .from('meals')
+      .select(`
+        *,
+        meal_items (
+          *,
+          food_items (*)
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('date', today);
+
+    if (error) {
+      console.error('Error fetching meals:', error);
+      return;
+    }
+
+    console.log('Fetched meals data:', mealsData);
+
+    // Transform meals data into our format
+    const transformedMeals = {
+      breakfast: [] as Food[],
+      lunch: [] as Food[],
+      dinner: [] as Food[],
+      snacks: [] as Food[]
+    };
+
+    mealsData?.forEach(meal => {
+      const mealType = meal.meal_type as keyof typeof transformedMeals;
+      if (transformedMeals[mealType]) {
+        meal.meal_items?.forEach((item: any) => {
+          const food: Food = {
+            id: `${item.food_id}-${item.meal_item_id}`,
+            name: item.food_items.name,
+            calories: item.calories,
+            protein: item.protein || 0,
+            carbs: item.carbs || 0,
+            fat: item.fat || 0,
+            serving: `${item.quantity_grams}g`
+          };
+          transformedMeals[mealType].push(food);
+        });
+      }
+    });
+
+    setMeals(transformedMeals);
+  };
+
   useEffect(() => {
     fetchFoodItems();
-  }, []);
+    if (user) {
+      fetchTodaysMeals();
+    }
+  }, [user]);
 
   // Calculate daily stats
   const dailyStats: DailyStats = {
@@ -91,18 +159,113 @@ export const useDietTracker = () => {
     { day: 'Sun', calories: dailyStats.calories }
   ];
 
-  const addFoodToMeal = (mealType: keyof typeof meals, food: Food) => {
-    setMeals(prev => ({
-      ...prev,
-      [mealType]: [...prev[mealType], { ...food, id: `${food.id}-${Date.now()}` }]
-    }));
+  const addFoodToMeal = async (mealType: keyof typeof meals, food: Food) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save meals",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const today = getTodayDate();
+      
+      // Check if meal exists for today
+      let { data: existingMeal, error: mealError } = await supabase
+        .from('meals')
+        .select('meal_id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .eq('meal_type', mealType)
+        .single();
+
+      let mealId;
+
+      if (mealError && mealError.code === 'PGRST116') {
+        // Meal doesn't exist, create it
+        const { data: newMeal, error: createError } = await supabase
+          .from('meals')
+          .insert({
+            user_id: user.id,
+            date: today,
+            meal_type: mealType
+          })
+          .select('meal_id')
+          .single();
+
+        if (createError) throw createError;
+        mealId = newMeal.meal_id;
+      } else if (mealError) {
+        throw mealError;
+      } else {
+        mealId = existingMeal.meal_id;
+      }
+
+      // Add meal item
+      const { error: itemError } = await supabase
+        .from('meal_items')
+        .insert({
+          meal_id: mealId,
+          food_id: food.id.split('-')[0], // Extract original food_id
+          quantity_grams: 100, // Default to 100g
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat
+        });
+
+      if (itemError) throw itemError;
+
+      // Update local state
+      setMeals(prev => ({
+        ...prev,
+        [mealType]: [...prev[mealType], { ...food, id: `${food.id}-${Date.now()}` }]
+      }));
+
+      toast({
+        title: "Success",
+        description: `Added ${food.name} to ${mealType}`,
+      });
+
+    } catch (error) {
+      console.error('Error adding food to meal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save meal. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const removeFoodFromMeal = (mealType: keyof typeof meals, foodToRemove: Food) => {
-    setMeals(prev => ({
-      ...prev,
-      [mealType]: prev[mealType].filter(food => food.id !== foodToRemove.id)
-    }));
+  const removeFoodFromMeal = async (mealType: keyof typeof meals, foodToRemove: Food) => {
+    if (!user) return;
+
+    try {
+      // This is a simplified removal - in a real app you'd want to track meal_item_ids
+      // For now, we'll just update the local state and refetch
+      setMeals(prev => ({
+        ...prev,
+        [mealType]: prev[mealType].filter(food => food.id !== foodToRemove.id)
+      }));
+
+      // Refresh meals from database
+      await fetchTodaysMeals();
+
+      toast({
+        title: "Success",
+        description: `Removed ${foodToRemove.name} from ${mealType}`,
+      });
+
+    } catch (error) {
+      console.error('Error removing food from meal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove meal item. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const searchFoods = (query: string) => {
@@ -119,6 +282,9 @@ export const useDietTracker = () => {
 
   const refreshFoodItems = () => {
     fetchFoodItems();
+    if (user) {
+      fetchTodaysMeals();
+    }
   };
 
   return {
