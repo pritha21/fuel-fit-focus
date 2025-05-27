@@ -1,130 +1,78 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { DailyStats, WeeklyData } from '../hooks/useDietTracker';
+import type React from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TrendingUp, Target } from "lucide-react"
+
+interface DailyStats {
+  calories: number
+  calorieGoal: number
+}
+
+interface WeeklyData {
+  labels: string[]
+  calories: number[]
+  weight: number[]
+}
 
 interface ProgressChartsProps {
-  dailyStats: DailyStats;
-  weeklyData: WeeklyData[];
+  dailyStats: DailyStats
+  weeklyData: WeeklyData
 }
 
 export const ProgressCharts: React.FC<ProgressChartsProps> = ({ dailyStats, weeklyData }) => {
-  const macroData = [
-    { name: 'Protein', value: dailyStats.protein, color: '#3B82F6' },
-    { name: 'Carbs', value: dailyStats.carbs, color: '#F59E0B' },
-    { name: 'Fat', value: dailyStats.fat, color: '#8B5CF6' }
-  ];
+  const avgCalories = weeklyData.calories.reduce((sum, cal) => sum + cal, 0) / weeklyData.calories.length
+  const weightChange = weeklyData.weight[weeklyData.weight.length - 1] - weeklyData.weight[0]
 
   return (
-    <div className="space-y-6">
-      {/* Weekly Calories Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Weekly Calories</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={weeklyData}>
-            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Bar dataKey="calories" fill="url(#barGradient)" radius={[4, 4, 0, 0]} />
-            <defs>
-              <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.8}/>
-              </linearGradient>
-            </defs>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="space-y-4">
+      <Card className="bg-white/80 backdrop-blur-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-green-500" />
+            Weekly Progress
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="text-lg font-semibold text-gray-900">{Math.round(avgCalories)} cal/day</div>
+              <div className="text-sm text-gray-600">Average this week</div>
+            </div>
 
-      {/* Macro Distribution */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Today's Macros</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <PieChart>
-            <Pie
-              data={macroData}
-              cx="50%"
-              cy="50%"
-              innerRadius={40}
-              outerRadius={80}
-              paddingAngle={5}
-              dataKey="value"
-            >
-              {macroData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          {macroData.map((macro) => (
-            <div key={macro.name} className="text-center">
-              <div 
-                className="w-3 h-3 rounded-full mx-auto mb-1"
-                style={{ backgroundColor: macro.color }}
-              ></div>
-              <p className="text-xs font-medium text-gray-600">{macro.name}</p>
-              <p className="text-sm font-bold">{Math.round(macro.value)}g</p>
+            <div className="text-center">
+              <div className={`text-lg font-semibold ${weightChange <= 0 ? "text-green-600" : "text-red-600"}`}>
+                {weightChange > 0 ? "+" : ""}
+                {weightChange.toFixed(1)} kg
+              </div>
+              <div className="text-sm text-gray-600">Weight change</div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Goals Progress */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Daily Goals</h3>
-        <div className="space-y-3">
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Calories</span>
-              <span>{Math.round(dailyStats.calories)}/{dailyStats.caloriesGoal}</span>
+      <Card className="bg-white/80 backdrop-blur-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-blue-500" />
+            Goals
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Daily Calories</span>
+              <span className="font-semibold">{dailyStats.calorieGoal}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-red-400 to-red-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((dailyStats.calories / dailyStats.caloriesGoal) * 100, 100)}%` }}
-              ></div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Weekly Workouts</span>
+              <span className="font-semibold">5 days</span>
             </div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Protein</span>
-              <span>{Math.round(dailyStats.protein)}g/{dailyStats.proteinGoal}g</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-blue-400 to-blue-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((dailyStats.protein / dailyStats.proteinGoal) * 100, 100)}%` }}
-              ></div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Target Weight</span>
+              <span className="font-semibold">68 kg</span>
             </div>
           </div>
-          
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Carbs</span>
-              <span>{Math.round(dailyStats.carbs)}g/{dailyStats.carbsGoal}g</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((dailyStats.carbs / dailyStats.carbsGoal) * 100, 100)}%` }}
-              ></div>
-            </div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Fat</span>
-              <span>{Math.round(dailyStats.fat)}g/{dailyStats.fatGoal}g</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-purple-400 to-purple-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((dailyStats.fat / dailyStats.fatGoal) * 100, 100)}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
-  );
-};
+  )
+}
