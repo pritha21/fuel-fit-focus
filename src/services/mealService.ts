@@ -1,15 +1,6 @@
-import { supabase } from "../supabaseClient"
-import type { Food } from "../types/Food"
-
-type MealType = "breakfast" | "lunch" | "dinner" | "snack"
-
-const getTodayDate = (): string => {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, "0") // Months are 0-indexed
-  const day = String(today.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
+import { supabase } from "@/integrations/supabase/client"
+import { getTodayDate } from "@/utils/dateUtils"
+import type { Food, MealType } from "@/types/diet"
 
 export const addFoodToMealInDB = async (userId: string, mealType: MealType, food: Food): Promise<boolean> => {
   try {
@@ -74,5 +65,67 @@ export const addFoodToMealInDB = async (userId: string, mealType: MealType, food
   } catch (error) {
     console.error("Error adding food to meal:", error)
     return false
+  }
+}
+
+export const fetchTodaysMeals = async (userId: string) => {
+  const today = getTodayDate()
+
+  try {
+    const { data: meals, error } = await supabase
+      .from("meals")
+      .select(`
+        meal_type,
+        meal_items (
+          food_id,
+          quantity_grams,
+          calories,
+          protein,
+          carbs,
+          fat,
+          food_items (
+            name
+          )
+        )
+      `)
+      .eq("user_id", userId)
+      .eq("date", today)
+
+    if (error) throw error
+
+    // Transform the data to match our Meals interface
+    const mealsData = {
+      breakfast: [],
+      lunch: [],
+      dinner: [],
+      snacks: [],
+    }
+
+    meals?.forEach((meal) => {
+      const mealType = meal.meal_type as MealType
+      if (meal.meal_items) {
+        meal.meal_items.forEach((item) => {
+          mealsData[mealType].push({
+            id: item.food_id,
+            name: item.food_items?.name || "Unknown Food",
+            calories: item.calories,
+            protein: item.protein || 0,
+            carbs: item.carbs || 0,
+            fat: item.fat || 0,
+            serving: `${item.quantity_grams}g`,
+          })
+        })
+      }
+    })
+
+    return mealsData
+  } catch (error) {
+    console.error("Error fetching meals:", error)
+    return {
+      breakfast: [],
+      lunch: [],
+      dinner: [],
+      snacks: [],
+    }
   }
 }
