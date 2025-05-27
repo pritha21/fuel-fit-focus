@@ -1,16 +1,13 @@
-import React from 'react';
-import { CircularProgress } from './CircularProgress';
-import { DailyStats } from '../hooks/useDietTracker';
+import type React from "react"
+import { CircularProgress } from "./CircularProgress"
+import type { DailyStats } from "../types/diet"
 
 interface DashboardHeaderProps {
-  dailyStats: DailyStats;
+  dailyStats: DailyStats
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ dailyStats }) => {
-  const calorieProgress = (dailyStats.calories / dailyStats.caloriesGoal) * 100;
-  const proteinProgress = (dailyStats.protein / dailyStats.proteinGoal) * 100;
-  const carbsProgress = (dailyStats.carbs / dailyStats.carbsGoal) * 100;
-  const fatProgress = (dailyStats.fat / dailyStats.fatGoal) * 100;
+  const calorieProgress = (dailyStats.calories / dailyStats.caloriesGoal) * 100
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 animate-fade-in">
@@ -20,21 +17,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ dailyStats }) 
             Diet Tracker
           </h1>
           <p className="text-gray-600 mt-1">
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             })}
           </p>
         </div>
         <div className="mt-4 md:mt-0">
-          <CircularProgress 
-            value={calorieProgress} 
-            size={80}
-            strokeWidth={6}
-            color="from-green-400 to-blue-500"
-          >
+          <CircularProgress value={calorieProgress} size={80} strokeWidth={6} color="from-green-400 to-blue-500">
             <div className="text-center">
               <div className="text-lg font-bold">{Math.round(dailyStats.calories)}</div>
               <div className="text-xs text-gray-500">of {dailyStats.caloriesGoal}</div>
@@ -89,5 +81,5 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ dailyStats }) 
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
