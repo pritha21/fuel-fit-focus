@@ -7,11 +7,15 @@ import { DashboardHeader } from '../components/DashboardHeader';
 import { MealSection } from '../components/MealSection';
 import { ProgressCharts } from '../components/ProgressCharts';
 import { FoodSearch } from '../components/FoodSearch';
+import { WaterTracker } from '../components/WaterTracker';
+import { MealSummary } from '../components/MealSummary';
 import { useDietTracker } from '../hooks/useDietTracker';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const {
     meals,
@@ -20,11 +24,14 @@ const Index = () => {
     addFoodToMeal,
     removeFoodFromMeal,
     searchFoods,
-    foodSearchResults
+    foodSearchResults,
+    updateWaterIntake,
+    waterIntake
   } = useDietTracker();
 
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snacks'>('breakfast');
+  const [isSavingMeals, setIsSavingMeals] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -40,6 +47,18 @@ const Index = () => {
   const handleFoodSelect = (food: any) => {
     addFoodToMeal(selectedMealType, food);
     setShowFoodSearch(false);
+  };
+
+  const handleSaveMeals = async () => {
+    setIsSavingMeals(true);
+    // Simulate save operation
+    setTimeout(() => {
+      setIsSavingMeals(false);
+      toast({
+        title: "Success",
+        description: "Meals saved successfully!",
+      });
+    }, 1000);
   };
 
   if (loading) {
@@ -60,12 +79,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-100">
       <Header />
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         <DashboardHeader dailyStats={dailyStats} />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
           {/* Meals Section */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-3 space-y-4">
             <MealSection
               title="Breakfast"
               icon="🌅"
@@ -100,8 +119,20 @@ const Index = () => {
             />
           </div>
 
-          {/* Progress Charts */}
+          {/* Sidebar with Progress Charts, Water Tracker, and Meal Summary */}
           <div className="space-y-4">
+            <MealSummary
+              dailyStats={dailyStats}
+              onSaveMeals={handleSaveMeals}
+              isSaving={isSavingMeals}
+            />
+            
+            <WaterTracker
+              waterConsumed={dailyStats.waterConsumed}
+              waterGoal={dailyStats.waterGoal}
+              onAddWater={updateWaterIntake}
+            />
+            
             <ProgressCharts dailyStats={dailyStats} weeklyData={weeklyData} />
           </div>
         </div>

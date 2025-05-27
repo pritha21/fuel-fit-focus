@@ -65,6 +65,33 @@ export type Database = {
           },
         ]
       }
+      daily_water_intake: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          updated_at: string | null
+          user_id: string
+          water_consumed_ml: number
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          water_consumed_ml?: number
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          water_consumed_ml?: number
+        }
+        Relationships: []
+      }
       food_items: {
         Row: {
           calories_per_100g: number
@@ -351,40 +378,52 @@ export type Database = {
         Row: {
           activity_level: string | null
           age: number | null
+          carb_target: number | null
           created_at: string | null
           daily_calorie_target: number | null
           email: string
+          fat_target: number | null
           goal: string | null
           height: number | null
           name: string
+          protein_target: number | null
           updated_at: string | null
           user_id: string
+          water_target_ml: number | null
           weight: number | null
         }
         Insert: {
           activity_level?: string | null
           age?: number | null
+          carb_target?: number | null
           created_at?: string | null
           daily_calorie_target?: number | null
           email: string
+          fat_target?: number | null
           goal?: string | null
           height?: number | null
           name: string
+          protein_target?: number | null
           updated_at?: string | null
           user_id: string
+          water_target_ml?: number | null
           weight?: number | null
         }
         Update: {
           activity_level?: string | null
           age?: number | null
+          carb_target?: number | null
           created_at?: string | null
           daily_calorie_target?: number | null
           email?: string
+          fat_target?: number | null
           goal?: string | null
           height?: number | null
           name?: string
+          protein_target?: number | null
           updated_at?: string | null
           user_id?: string
+          water_target_ml?: number | null
           weight?: number | null
         }
         Relationships: []

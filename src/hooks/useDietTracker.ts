@@ -23,6 +23,8 @@ export interface DailyStats {
   proteinGoal: number;
   carbsGoal: number;
   fatGoal: number;
+  waterConsumed: number;
+  waterGoal: number;
 }
 
 export interface WeeklyData {
@@ -43,10 +45,82 @@ export const useDietTracker = () => {
 
   const [foodSearchResults, setFoodSearchResults] = useState<Food[]>([]);
   const [allFoodItems, setAllFoodItems] = useState<Food[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [waterIntake, setWaterIntake] = useState(0);
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
     return new Date().toISOString().split('T')[0];
+  };
+
+  // Fetch user profile
+  const fetchUserProfile = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching user profile:', error);
+      return;
+    }
+
+    setUserProfile(data);
+  };
+
+  // Fetch today's water intake
+  const fetchWaterIntake = async () => {
+    if (!user) return;
+
+    const today = getTodayDate();
+    const { data, error } = await supabase
+      .from('daily_water_intake')
+      .select('water_consumed_ml')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching water intake:', error);
+      return;
+    }
+
+    setWaterIntake(data?.water_consumed_ml || 0);
+  };
+
+  // Update water intake
+  const updateWaterIntake = async (amount: number) => {
+    if (!user) return;
+
+    const today = getTodayDate();
+    const newAmount = waterIntake + amount;
+
+    const { error } = await supabase
+      .from('daily_water_intake')
+      .upsert({
+        user_id: user.id,
+        date: today,
+        water_consumed_ml: newAmount
+      });
+
+    if (error) {
+      console.error('Error updating water intake:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update water intake",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setWaterIntake(newAmount);
+    toast({
+      title: "Success",
+      description: `Added ${amount}ml of water`,
+    });
   };
 
   // Fetch food items from Supabase
@@ -133,19 +207,23 @@ export const useDietTracker = () => {
     fetchFoodItems();
     if (user) {
       fetchTodaysMeals();
+      fetchUserProfile();
+      fetchWaterIntake();
     }
   }, [user]);
 
-  // Calculate daily stats
+  // Calculate daily stats using user profile targets
   const dailyStats: DailyStats = {
     calories: Object.values(meals).flat().reduce((sum, food) => sum + food.calories, 0),
     protein: Object.values(meals).flat().reduce((sum, food) => sum + food.protein, 0),
     carbs: Object.values(meals).flat().reduce((sum, food) => sum + food.carbs, 0),
     fat: Object.values(meals).flat().reduce((sum, food) => sum + food.fat, 0),
-    caloriesGoal: 2000,
-    proteinGoal: 150,
-    carbsGoal: 250,
-    fatGoal: 65
+    caloriesGoal: userProfile?.daily_calorie_target || 2000,
+    proteinGoal: userProfile?.protein_target || 150,
+    carbsGoal: userProfile?.carb_target || 250,
+    fatGoal: userProfile?.fat_target || 65,
+    waterConsumed: waterIntake,
+    waterGoal: userProfile?.water_target_ml || 2000
   };
 
   // Sample weekly data
@@ -284,6 +362,8 @@ export const useDietTracker = () => {
     fetchFoodItems();
     if (user) {
       fetchTodaysMeals();
+      fetchUserProfile();
+      fetchWaterIntake();
     }
   };
 
@@ -295,6 +375,8 @@ export const useDietTracker = () => {
     removeFoodFromMeal,
     searchFoods,
     foodSearchResults,
-    refreshFoodItems
+    refreshFoodItems,
+    updateWaterIntake,
+    waterIntake
   };
 };

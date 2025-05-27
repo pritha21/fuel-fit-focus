@@ -18,6 +18,10 @@ interface UserProfile {
   activity_level: string;
   goal: string;
   daily_calorie_target: number;
+  protein_target: number;
+  carb_target: number;
+  fat_target: number;
+  water_target_ml: number;
 }
 
 export const UserProfileForm: React.FC = () => {
@@ -33,7 +37,11 @@ export const UserProfileForm: React.FC = () => {
     weight: null,
     activity_level: 'moderately_active',
     goal: 'maintain_weight',
-    daily_calorie_target: 2000
+    daily_calorie_target: 2000,
+    protein_target: 150,
+    carb_target: 250,
+    fat_target: 65,
+    water_target_ml: 2000
   });
 
   useEffect(() => {
@@ -41,6 +49,52 @@ export const UserProfileForm: React.FC = () => {
       fetchProfile();
     }
   }, [user]);
+
+  // Calculate smart defaults based on user stats
+  const calculateDefaults = () => {
+    if (!profile.weight || !profile.height || !profile.age) return;
+
+    const weight = profile.weight;
+    const height = profile.height;
+    const age = profile.age;
+
+    // Calculate BMR using Mifflin-St Jeor Equation
+    let bmr = 10 * weight + 6.25 * height - 5 * age;
+    bmr += profile.goal === 'male' ? 5 : -161; // Assume moderately active person
+
+    // Activity multiplier
+    const activityMultipliers = {
+      sedentary: 1.2,
+      lightly_active: 1.375,
+      moderately_active: 1.55,
+      very_active: 1.725,
+      extremely_active: 1.9
+    };
+
+    const multiplier = activityMultipliers[profile.activity_level as keyof typeof activityMultipliers] || 1.55;
+    let calories = Math.round(bmr * multiplier);
+
+    // Adjust based on goal
+    if (profile.goal === 'lose_weight') calories -= 500;
+    if (profile.goal === 'gain_weight') calories += 500;
+
+    // Calculate macros
+    const protein = Math.round(weight * 2.2); // 2.2g per kg bodyweight
+    const fat = Math.round(calories * 0.25 / 9); // 25% of calories from fat
+    const carbs = Math.round((calories - (protein * 4) - (fat * 9)) / 4); // Rest from carbs
+
+    // Water target (35ml per kg bodyweight)
+    const water = Math.round(weight * 35);
+
+    setProfile(prev => ({
+      ...prev,
+      daily_calorie_target: calories,
+      protein_target: protein,
+      carb_target: carbs,
+      fat_target: fat,
+      water_target_ml: water
+    }));
+  };
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -72,7 +126,11 @@ export const UserProfileForm: React.FC = () => {
           weight: data.weight,
           activity_level: data.activity_level || 'moderately_active',
           goal: data.goal || 'maintain_weight',
-          daily_calorie_target: data.daily_calorie_target || 2000
+          daily_calorie_target: data.daily_calorie_target || 2000,
+          protein_target: data.protein_target || 150,
+          carb_target: data.carb_target || 250,
+          fat_target: data.fat_target || 65,
+          water_target_ml: data.water_target_ml || 2000
         });
       } else {
         // No profile exists, set defaults
@@ -107,6 +165,10 @@ export const UserProfileForm: React.FC = () => {
           activity_level: profile.activity_level,
           goal: profile.goal,
           daily_calorie_target: profile.daily_calorie_target,
+          protein_target: profile.protein_target,
+          carb_target: profile.carb_target,
+          fat_target: profile.fat_target,
+          water_target_ml: profile.water_target_ml,
           updated_at: new Date().toISOString()
         });
 
@@ -155,7 +217,7 @@ export const UserProfileForm: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={handleSave} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
@@ -225,22 +287,6 @@ export const UserProfileForm: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="daily_calorie_target">Daily Calorie Target</Label>
-              <Input
-                id="daily_calorie_target"
-                type="number"
-                min="800"
-                max="5000"
-                value={profile.daily_calorie_target}
-                onChange={(e) => setProfile(prev => ({ 
-                  ...prev, 
-                  daily_calorie_target: parseInt(e.target.value) || 2000 
-                }))}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="activity_level">Activity Level</Label>
               <Select
                 value={profile.activity_level}
@@ -275,6 +321,100 @@ export const UserProfileForm: React.FC = () => {
                   <SelectItem value="build_muscle">Build Muscle</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t">
+            <h3 className="text-lg font-semibold">Daily Targets</h3>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={calculateDefaults}
+              disabled={!profile.weight || !profile.height || !profile.age}
+            >
+              Calculate Defaults
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="daily_calorie_target">Daily Calorie Target</Label>
+              <Input
+                id="daily_calorie_target"
+                type="number"
+                min="800"
+                max="5000"
+                value={profile.daily_calorie_target}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  daily_calorie_target: parseInt(e.target.value) || 2000 
+                }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="protein_target">Protein Target (g)</Label>
+              <Input
+                id="protein_target"
+                type="number"
+                min="10"
+                max="500"
+                value={profile.protein_target}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  protein_target: parseInt(e.target.value) || 150 
+                }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="carb_target">Carb Target (g)</Label>
+              <Input
+                id="carb_target"
+                type="number"
+                min="10"
+                max="1000"
+                value={profile.carb_target}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  carb_target: parseInt(e.target.value) || 250 
+                }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fat_target">Fat Target (g)</Label>
+              <Input
+                id="fat_target"
+                type="number"
+                min="10"
+                max="300"
+                value={profile.fat_target}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  fat_target: parseInt(e.target.value) || 65 
+                }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="water_target_ml">Daily Water Target (ml)</Label>
+              <Input
+                id="water_target_ml"
+                type="number"
+                min="500"
+                max="5000"
+                value={profile.water_target_ml}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  water_target_ml: parseInt(e.target.value) || 2000 
+                }))}
+                required
+              />
             </div>
           </div>
 
