@@ -1,118 +1,73 @@
 "use client"
 
-import { useState } from "react"
-import { DashboardHeader } from "../components/DashboardHeader"
-import { MealSection } from "../components/MealSection"
-import { ProgressCharts } from "../components/ProgressCharts"
-import { FoodSearch } from "../components/FoodSearch"
-import { WaterTracker } from "../components/WaterTracker"
-import { MealSummary } from "../components/MealSummary"
-import type { Food, Meals, DailyStats, WeeklyData } from "@/types/diet"
-
-// Mock data for the preview
-const mockFoodItems: Food[] = [
-  { id: "1", name: "Banana", calories: 89, protein: 1.1, carbs: 22.8, fat: 0.3, serving: "100g" },
-  { id: "2", name: "Chicken Breast", calories: 165, protein: 31.0, carbs: 0.0, fat: 3.6, serving: "100g" },
-  { id: "3", name: "Brown Rice", calories: 111, protein: 2.6, carbs: 23.0, fat: 0.9, serving: "100g" },
-  { id: "4", name: "Greek Yogurt", calories: 59, protein: 10.0, carbs: 3.6, fat: 0.4, serving: "100g" },
-  { id: "5", name: "Almonds", calories: 579, protein: 21.2, carbs: 21.6, fat: 49.9, serving: "100g" },
-  { id: "6", name: "Avocado", calories: 160, protein: 2.0, carbs: 8.5, fat: 14.7, serving: "100g" },
-  { id: "7", name: "Salmon", calories: 208, protein: 25.4, carbs: 0.0, fat: 12.4, serving: "100g" },
-  { id: "8", name: "Sweet Potato", calories: 86, protein: 1.6, carbs: 20.1, fat: 0.1, serving: "100g" },
-]
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { Header } from "@/components/Header"
+import { DashboardHeader } from "@/components/DashboardHeader"
+import { MealSection } from "@/components/MealSection"
+import { ProgressCharts } from "@/components/ProgressCharts"
+import { FoodSearch } from "@/components/FoodSearch"
+import { WaterTracker } from "@/components/WaterTracker"
+import { MealSummary } from "@/components/MealSummary"
+import { useDietTracker } from "@/hooks/useDietTracker"
 
 const Index = () => {
-  const [meals, setMeals] = useState<Meals>({
-    breakfast: [
-      { id: "1", name: "Banana", calories: 89, protein: 1.1, carbs: 22.8, fat: 0.3, serving: "100g" },
-      { id: "4", name: "Greek Yogurt", calories: 59, protein: 10.0, carbs: 3.6, fat: 0.4, serving: "100g" },
-    ],
-    lunch: [
-      { id: "2", name: "Chicken Breast", calories: 165, protein: 31.0, carbs: 0.0, fat: 3.6, serving: "100g" },
-      { id: "3", name: "Brown Rice", calories: 111, protein: 2.6, carbs: 23.0, fat: 0.9, serving: "100g" },
-    ],
-    dinner: [
-      { id: "7", name: "Salmon", calories: 208, protein: 25.4, carbs: 0.0, fat: 12.4, serving: "100g" },
-      { id: "8", name: "Sweet Potato", calories: 86, protein: 1.6, carbs: 20.1, fat: 0.1, serving: "100g" },
-    ],
-    snacks: [{ id: "5", name: "Almonds", calories: 289, protein: 10.6, carbs: 10.8, fat: 25.0, serving: "50g" }],
-  })
-
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
   const [showFoodSearch, setShowFoodSearch] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast")
-  const [searchResults, setSearchResults] = useState<Food[]>([])
-  const [waterIntake, setWaterIntake] = useState(1500)
-  const [isSavingMeals, setIsSavingMeals] = useState(false)
 
-  // Calculate daily stats
-  const allFoods = Object.values(meals).flat()
-  const dailyStats: DailyStats = {
-    calories: allFoods.reduce((sum, food) => sum + food.calories, 0),
-    protein: allFoods.reduce((sum, food) => sum + food.protein, 0),
-    carbs: allFoods.reduce((sum, food) => sum + food.carbs, 0),
-    fat: allFoods.reduce((sum, food) => sum + food.fat, 0),
-    caloriesGoal: 2000,
-    proteinGoal: 150,
-    carbsGoal: 250,
-    fatGoal: 65,
-    waterConsumed: waterIntake,
-    waterGoal: 2000,
+  const {
+    meals,
+    dailyStats,
+    weeklyData,
+    addFoodToMeal,
+    removeFoodFromMeal,
+    searchFoods,
+    foodSearchResults,
+    updateWaterIntake,
+  } = useDietTracker()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth")
+    }
+  }, [user, loading, navigate])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
-  const weeklyData: WeeklyData[] = [
-    { day: "Mon", calories: 1950 },
-    { day: "Tue", calories: 2100 },
-    { day: "Wed", calories: 1850 },
-    { day: "Thu", calories: 2200 },
-    { day: "Fri", calories: 1900 },
-    { day: "Sat", calories: 2300 },
-    { day: "Sun", calories: dailyStats.calories },
-  ]
+  if (!user) {
+    return null
+  }
 
   const handleAddFood = (mealType: "breakfast" | "lunch" | "dinner" | "snacks") => {
     setSelectedMealType(mealType)
     setShowFoodSearch(true)
   }
 
-  const handleFoodSelect = (food: Food) => {
-    setMeals((prev) => ({
-      ...prev,
-      [selectedMealType]: [...prev[selectedMealType], { ...food, id: `${food.id}-${Date.now()}` }],
-    }))
+  const handleFoodSelect = (food: any) => {
+    addFoodToMeal(selectedMealType, food)
     setShowFoodSearch(false)
   }
 
-  const handleRemoveFood = (mealType: "breakfast" | "lunch" | "dinner" | "snacks", foodToRemove: Food) => {
-    setMeals((prev) => ({
-      ...prev,
-      [mealType]: prev[mealType].filter((food) => food.id !== foodToRemove.id),
-    }))
-  }
-
-  const handleSearch = (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([])
-      return
-    }
-    const results = mockFoodItems.filter((food) => food.name.toLowerCase().includes(query.toLowerCase()))
-    setSearchResults(results)
-  }
-
-  const handleAddWater = (amount: number) => {
-    setWaterIntake((prev) => prev + amount)
-  }
-
-  const handleSaveMeals = async () => {
-    setIsSavingMeals(true)
-    // Simulate save operation
-    setTimeout(() => {
-      setIsSavingMeals(false)
-      alert("Meals saved successfully!")
-    }, 1000)
+  const handleSaveMeals = () => {
+    // This is handled automatically by the useDietTracker hook
+    console.log("Meals are automatically saved!")
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-100">
+      <Header />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <DashboardHeader dailyStats={dailyStats} />
 
@@ -125,7 +80,7 @@ const Index = () => {
               mealType="breakfast"
               foods={meals.breakfast}
               onAddFood={() => handleAddFood("breakfast")}
-              onRemoveFood={(food) => handleRemoveFood("breakfast", food)}
+              onRemoveFood={(food) => removeFoodFromMeal("breakfast", food)}
             />
             <MealSection
               title="Lunch"
@@ -133,7 +88,7 @@ const Index = () => {
               mealType="lunch"
               foods={meals.lunch}
               onAddFood={() => handleAddFood("lunch")}
-              onRemoveFood={(food) => handleRemoveFood("lunch", food)}
+              onRemoveFood={(food) => removeFoodFromMeal("lunch", food)}
             />
             <MealSection
               title="Dinner"
@@ -141,7 +96,7 @@ const Index = () => {
               mealType="dinner"
               foods={meals.dinner}
               onAddFood={() => handleAddFood("dinner")}
-              onRemoveFood={(food) => handleRemoveFood("dinner", food)}
+              onRemoveFood={(food) => removeFoodFromMeal("dinner", food)}
             />
             <MealSection
               title="Snacks"
@@ -149,18 +104,18 @@ const Index = () => {
               mealType="snacks"
               foods={meals.snacks}
               onAddFood={() => handleAddFood("snacks")}
-              onRemoveFood={(food) => handleRemoveFood("snacks", food)}
+              onRemoveFood={(food) => removeFoodFromMeal("snacks", food)}
             />
           </div>
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <MealSummary dailyStats={dailyStats} onSaveMeals={handleSaveMeals} isSaving={isSavingMeals} />
+            <MealSummary dailyStats={dailyStats} onSaveMeals={handleSaveMeals} isSaving={false} />
 
             <WaterTracker
               waterConsumed={dailyStats.waterConsumed}
               waterGoal={dailyStats.waterGoal}
-              onAddWater={handleAddWater}
+              onAddWater={updateWaterIntake}
             />
 
             <ProgressCharts dailyStats={dailyStats} weeklyData={weeklyData} />
@@ -172,8 +127,8 @@ const Index = () => {
           <FoodSearch
             onClose={() => setShowFoodSearch(false)}
             onFoodSelect={handleFoodSelect}
-            searchFoods={handleSearch}
-            searchResults={searchResults}
+            searchFoods={searchFoods}
+            searchResults={foodSearchResults}
           />
         )}
       </div>
