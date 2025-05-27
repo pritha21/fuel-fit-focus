@@ -1,10 +1,31 @@
 "use client"
+
+import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Check, Save } from "lucide-react"
 
-export const MealSummary = ({ dailyStats, onSaveMeals, isSaving = false }) => {
-  const isGoalMet = (current, goal) => current >= goal * 0.9
+interface DailyStats {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  caloriesGoal: number
+  proteinGoal: number
+  carbsGoal: number
+  fatGoal: number
+  waterConsumed: number
+  waterGoal: number
+}
+
+interface MealSummaryProps {
+  dailyStats: DailyStats
+  onSaveMeals: () => void
+  isSaving?: boolean
+}
+
+export const MealSummary: React.FC<MealSummaryProps> = ({ dailyStats, onSaveMeals, isSaving = false }) => {
+  const isGoalMet = (current: number, goal: number) => current >= goal * 0.9
 
   return (
     <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200">

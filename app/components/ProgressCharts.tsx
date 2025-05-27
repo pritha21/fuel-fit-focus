@@ -1,6 +1,30 @@
+import type React from "react"
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 
-export const ProgressCharts = ({ dailyStats, weeklyData }) => {
+interface DailyStats {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  caloriesGoal: number
+  proteinGoal: number
+  carbsGoal: number
+  fatGoal: number
+  waterConsumed: number
+  waterGoal: number
+}
+
+interface WeeklyData {
+  day: string
+  calories: number
+}
+
+interface ProgressChartsProps {
+  dailyStats: DailyStats
+  weeklyData: WeeklyData[]
+}
+
+export const ProgressCharts: React.FC<ProgressChartsProps> = ({ dailyStats, weeklyData }) => {
   const macroData = [
     { name: "Protein", value: dailyStats.protein, color: "#3B82F6" },
     { name: "Carbs", value: dailyStats.carbs, color: "#F59E0B" },

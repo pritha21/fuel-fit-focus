@@ -1,12 +1,30 @@
 "use client"
 
+import type React from "react"
 import { useState } from "react"
 import { Search, Plus, X } from "lucide-react"
 
-export const FoodSearch = ({ onClose, onFoodSelect, searchFoods, searchResults }) => {
+interface Food {
+  id: string
+  name: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  serving: string
+}
+
+interface FoodSearchProps {
+  onClose: () => void
+  onFoodSelect: (food: Food) => void
+  searchFoods: (query: string) => void
+  searchResults: Food[]
+}
+
+export const FoodSearch: React.FC<FoodSearchProps> = ({ onClose, onFoodSelect, searchFoods, searchResults }) => {
   const [searchQuery, setSearchQuery] = useState("")
 
-  const handleSearch = (query) => {
+  const handleSearch = (query: string) => {
     setSearchQuery(query)
     searchFoods(query)
   }

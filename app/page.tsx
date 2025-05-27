@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { DashboardHeader } from "@/components/DashboardHeader"
-import { MealSection } from "@/components/MealSection"
-import { ProgressCharts } from "@/components/ProgressCharts"
-import { FoodSearch } from "@/components/FoodSearch"
-import { WaterTracker } from "@/components/WaterTracker"
-import { MealSummary } from "@/components/MealSummary"
+import { DashboardHeader } from "./components/DashboardHeader"
+import { MealSection } from "./components/MealSection"
+import { ProgressCharts } from "./components/ProgressCharts"
+import { FoodSearch } from "./components/FoodSearch"
+import { WaterTracker } from "./components/WaterTracker"
+import { MealSummary } from "./components/MealSummary"
 
 // Mock data for demonstration
 const mockDailyStats = {
@@ -38,6 +38,9 @@ const mockFoodItems = [
   { id: "3", name: "Brown Rice", calories: 111, protein: 2.6, carbs: 23.0, fat: 0.9, serving: "100g" },
   { id: "4", name: "Greek Yogurt", calories: 59, protein: 10.0, carbs: 3.6, fat: 0.4, serving: "100g" },
   { id: "5", name: "Almonds", calories: 579, protein: 21.2, carbs: 21.6, fat: 49.9, serving: "100g" },
+  { id: "6", name: "Avocado", calories: 160, protein: 2.0, carbs: 8.5, fat: 14.7, serving: "100g" },
+  { id: "7", name: "Salmon", calories: 208, protein: 25.4, carbs: 0.0, fat: 12.4, serving: "100g" },
+  { id: "8", name: "Sweet Potato", calories: 86, protein: 1.6, carbs: 20.1, fat: 0.1, serving: "100g" },
 ]
 
 export default function DietTracker() {
@@ -50,7 +53,10 @@ export default function DietTracker() {
       { id: "2", name: "Chicken Breast", calories: 165, protein: 31.0, carbs: 0.0, fat: 3.6, serving: "100g" },
       { id: "3", name: "Brown Rice", calories: 111, protein: 2.6, carbs: 23.0, fat: 0.9, serving: "100g" },
     ],
-    dinner: [{ id: "2", name: "Chicken Breast", calories: 165, protein: 31.0, carbs: 0.0, fat: 3.6, serving: "100g" }],
+    dinner: [
+      { id: "7", name: "Salmon", calories: 208, protein: 25.4, carbs: 0.0, fat: 12.4, serving: "100g" },
+      { id: "8", name: "Sweet Potato", calories: 86, protein: 1.6, carbs: 20.1, fat: 0.1, serving: "100g" },
+    ],
     snacks: [{ id: "5", name: "Almonds", calories: 289, protein: 10.6, carbs: 10.8, fat: 25.0, serving: "50g" }],
   })
 
@@ -59,27 +65,27 @@ export default function DietTracker() {
   const [searchResults, setSearchResults] = useState([])
   const [waterIntake, setWaterIntake] = useState(1500)
 
-  const handleAddFood = (mealType) => {
+  const handleAddFood = (mealType: string) => {
     setSelectedMealType(mealType)
     setShowFoodSearch(true)
   }
 
-  const handleFoodSelect = (food) => {
+  const handleFoodSelect = (food: any) => {
     setMeals((prev) => ({
       ...prev,
-      [selectedMealType]: [...prev[selectedMealType], { ...food, id: `${food.id}-${Date.now()}` }],
+      [selectedMealType]: [...prev[selectedMealType as keyof typeof prev], { ...food, id: `${food.id}-${Date.now()}` }],
     }))
     setShowFoodSearch(false)
   }
 
-  const handleRemoveFood = (mealType, foodToRemove) => {
+  const handleRemoveFood = (mealType: string, foodToRemove: any) => {
     setMeals((prev) => ({
       ...prev,
-      [mealType]: prev[mealType].filter((food) => food.id !== foodToRemove.id),
+      [mealType]: prev[mealType as keyof typeof prev].filter((food) => food.id !== foodToRemove.id),
     }))
   }
 
-  const handleSearch = (query) => {
+  const handleSearch = (query: string) => {
     if (!query.trim()) {
       setSearchResults([])
       return
@@ -89,7 +95,7 @@ export default function DietTracker() {
     setSearchResults(results)
   }
 
-  const handleAddWater = (amount) => {
+  const handleAddWater = (amount: number) => {
     setWaterIntake((prev) => prev + amount)
   }
 

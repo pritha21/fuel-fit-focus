@@ -1,4 +1,13 @@
-export const CircularProgress = ({ value, size = 60, strokeWidth = 4, children }) => {
+import type React from "react"
+
+interface CircularProgressProps {
+  value: number
+  size?: number
+  strokeWidth?: number
+  children?: React.ReactNode
+}
+
+export const CircularProgress: React.FC<CircularProgressProps> = ({ value, size = 60, strokeWidth = 4, children }) => {
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
   const strokeDasharray = circumference

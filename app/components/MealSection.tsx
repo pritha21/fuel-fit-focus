@@ -1,7 +1,28 @@
 "use client"
+
+import type React from "react"
 import { Plus, Minus } from "lucide-react"
 
-export const MealSection = ({ title, icon, mealType, foods, onAddFood, onRemoveFood }) => {
+interface Food {
+  id: string
+  name: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  serving: string
+}
+
+interface MealSectionProps {
+  title: string
+  icon: string
+  mealType: string
+  foods: Food[]
+  onAddFood: () => void
+  onRemoveFood: (food: Food) => void
+}
+
+export const MealSection: React.FC<MealSectionProps> = ({ title, icon, mealType, foods, onAddFood, onRemoveFood }) => {
   const totalCalories = foods.reduce((sum, food) => sum + food.calories, 0)
 
   return (

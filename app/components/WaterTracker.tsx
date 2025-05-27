@@ -1,10 +1,18 @@
 "use client"
+
+import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CircularProgress } from "./CircularProgress"
 import { Plus } from "lucide-react"
 
-export const WaterTracker = ({ waterConsumed, waterGoal, onAddWater }) => {
+interface WaterTrackerProps {
+  waterConsumed: number
+  waterGoal: number
+  onAddWater: (amount: number) => void
+}
+
+export const WaterTracker: React.FC<WaterTrackerProps> = ({ waterConsumed, waterGoal, onAddWater }) => {
   const waterProgress = (waterConsumed / waterGoal) * 100
   const waterInLiters = (waterConsumed / 1000).toFixed(1)
   const goalInLiters = (waterGoal / 1000).toFixed(1)

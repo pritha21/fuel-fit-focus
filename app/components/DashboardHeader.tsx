@@ -1,6 +1,24 @@
+import type React from "react"
 import { CircularProgress } from "./CircularProgress"
 
-export const DashboardHeader = ({ dailyStats }) => {
+interface DailyStats {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  caloriesGoal: number
+  proteinGoal: number
+  carbsGoal: number
+  fatGoal: number
+  waterConsumed: number
+  waterGoal: number
+}
+
+interface DashboardHeaderProps {
+  dailyStats: DailyStats
+}
+
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ dailyStats }) => {
   const calorieProgress = (dailyStats.calories / dailyStats.caloriesGoal) * 100
 
   return (
