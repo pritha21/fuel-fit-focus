@@ -91,36 +91,62 @@ export const useDietTracker = () => {
     setWaterIntake(data?.water_consumed_ml || 0);
   };
 
-  // Update water intake
+  // Update water intake with proper upsert handling
   const updateWaterIntake = async (amount: number) => {
     if (!user) return;
 
     const today = getTodayDate();
     const newAmount = waterIntake + amount;
 
-    const { error } = await supabase
-      .from('daily_water_intake')
-      .upsert({
-        user_id: user.id,
-        date: today,
-        water_consumed_ml: newAmount
+    try {
+      // First try to update existing record
+      const { data: existingRecord, error: fetchError } = await supabase
+        .from('daily_water_intake')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      if (existingRecord) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('daily_water_intake')
+          .update({ water_consumed_ml: newAmount })
+          .eq('user_id', user.id)
+          .eq('date', today);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('daily_water_intake')
+          .insert({
+            user_id: user.id,
+            date: today,
+            water_consumed_ml: newAmount
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      setWaterIntake(newAmount);
+      toast({
+        title: "Success",
+        description: `Added ${amount}ml of water`,
       });
 
-    if (error) {
+    } catch (error) {
       console.error('Error updating water intake:', error);
       toast({
         title: "Error",
         description: "Failed to update water intake",
         variant: "destructive"
       });
-      return;
     }
-
-    setWaterIntake(newAmount);
-    toast({
-      title: "Success",
-      description: `Added ${amount}ml of water`,
-    });
   };
 
   // Fetch food items from Supabase
@@ -281,12 +307,16 @@ export const useDietTracker = () => {
         mealId = existingMeal.meal_id;
       }
 
+      // Use the original food.id directly as food_id (it should be a valid UUID)
+      const foodId = food.id;
+      console.log('Using food ID:', foodId);
+
       // Add meal item
       const { error: itemError } = await supabase
         .from('meal_items')
         .insert({
           meal_id: mealId,
-          food_id: food.id.split('-')[0], // Extract original food_id
+          food_id: foodId,
           quantity_grams: 100, // Default to 100g
           calories: food.calories,
           protein: food.protein,
