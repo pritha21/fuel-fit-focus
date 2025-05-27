@@ -1,19 +1,16 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
-
-interface User {
-  id: string
-  email: string
-  name?: string
-}
+import { createContext, useContext, useEffect, useState } from "react"
+import type { User, Session } from "@supabase/supabase-js"
+import { supabase } from "@/integrations/supabase/client"
 
 interface AuthContextType {
   user: User | null
+  session: Session | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error?: { message: string } }>
-  signUp: (email: string, password: string, name?: string) => Promise<{ error?: { message: string } }>
+  signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
 
@@ -21,7 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
@@ -29,51 +26,91 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Set up auth state listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email)
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      // Create user profile if it doesn't exist
+      if (session?.user && event === "SIGNED_IN") {
+        await createUserProfile(session.user)
+      }
+
+      setLoading(false)
+    })
+
     // Check for existing session
-    const savedUser = localStorage.getItem("user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
-    }
-    setLoading(false)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const createUserProfile = async (user: User) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Check if user profile already exists
+      const { data: existingUser } = await supabase.from("users").select("user_id").eq("user_id", user.id).single()
 
-      const mockUser = { id: "1", email, name: "Demo User" }
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
+      if (!existingUser) {
+        // Create new user profile
+        const { error } = await supabase.from("users").insert({
+          user_id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.name || user.email?.split("@")[0] || "User",
+        })
 
-      return {}
+        if (error) {
+          console.error("Error creating user profile:", error)
+        }
+      }
     } catch (error) {
-      return { error: { message: "Invalid credentials" } }
+      console.error("Error in createUserProfile:", error)
     }
   }
 
   const signUp = async (email: string, password: string, name?: string) => {
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: name || email.split("@")[0],
+        },
+      },
+    })
+    return { error }
+  }
 
-      const mockUser = { id: "1", email, name: name || "New User" }
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
-
-      return {}
-    } catch (error) {
-      return { error: { message: "Failed to create account" } }
-    }
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return { error }
   }
 
   const signOut = async () => {
-    setUser(null)
-    localStorage.removeItem("user")
+    await supabase.auth.signOut()
   }
 
-  return <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>{children}</AuthContext.Provider>
+  const value = {
+    user,
+    session,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
