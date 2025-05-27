@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Food } from '@/types/diet';
 import { fetchFoodItems, searchFoods } from '@/services/foodService';

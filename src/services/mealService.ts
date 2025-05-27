@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Food, Meals, MealType } from '@/types/diet';
 import { getTodayDate } from '@/utils/dateUtils';

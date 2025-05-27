@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, Plus, X } from 'lucide-react';
 import { Food } from '../hooks/useDietTracker';

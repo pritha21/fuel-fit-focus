@@ -1,4 +1,3 @@
-
 import { Meals, DailyStats } from '@/types/diet';
 
 export const calculateDailyStats = (

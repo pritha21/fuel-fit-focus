@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CircularProgress } from './CircularProgress';
 import { DailyStats } from '../hooks/useDietTracker';
